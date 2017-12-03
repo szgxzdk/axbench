@@ -15,16 +15,6 @@
 
 int k_bits;
 
-void print_diff(std::vector<std::vector<boost::shared_ptr<Pixel> > > p1,
-		   std::vector<std::vector<boost::shared_ptr<Pixel> > > p2) {
-	for (int i = 0; i < (int)p1.size(); i++)
-		for (int j = 0; j < (int)p1[i].size(); j++) {
-			if (p1[i][j]->r != p2[i][j]->r)
-				printf("(%d, %d) %d %d\n", i, j, p1[i][j]->r, p2[i][j]->r);
-
-		}
-}
-
 bool approximate ( std::vector<std::vector<boost::shared_ptr<Pixel> > > & pixels, int start_px, int end_px);
 double mse ( std::vector<std::vector<boost::shared_ptr<Pixel> > > p1,
 			 std::vector<std::vector<boost::shared_ptr<Pixel> > > p2,
@@ -35,15 +25,24 @@ double rms(std::vector<std::vector<boost::shared_ptr<Pixel> > > p1,
 void edge_highlight ( boost::shared_ptr<Image> src,
 					  boost::shared_ptr<Image> dst );
 
-FILE * debug;
+FILE * fp;
+
+void print_diff(std::vector<std::vector<boost::shared_ptr<Pixel> > > p1,
+				std::vector<std::vector<boost::shared_ptr<Pixel> > > p2) {
+	for (int i = 0; i < (int)p1.size(); i++)
+		for (int j = 0; j < (int)p1[i].size(); j++) {
+			if (p1[i][j]->r != p2[i][j]->r) {
+				fprintf(fp, "(%d, %d) %d %d\n", i, j, p1[i][j]->r, p2[i][j]->r);
+				fflush(fp);
+				//return;
+			}
+		}
+}
 
 int main ( int argc, const char* argv[])
 {
 	int appx_level;
 	int img_size_bytes, noutput, nwidth;
-	FILE * fp;
-
-	debug = fopen("debug", "w");
 
 	// Source and destination image
 	boost::shared_ptr<Image> srcImagePtr(new Image());
@@ -79,6 +78,8 @@ int main ( int argc, const char* argv[])
 	char fname[30];
 	sprintf(fname, "diff2loss_appxl%d", appx_level);
 	fp = fopen(fname, "w");
+	if (fp == NULL)
+		printf("NULL\n");
 
 	//start approximation and collect statistics
 	for (int i = 0; (i + 1) * CACHE_LINE_BYTE < img_size_bytes; i++) {
@@ -118,7 +119,7 @@ int main ( int argc, const char* argv[])
 		sprintf(buffer2, buffer1, i);
 		for (int k = 0; k < 60; k++)
 			printf("\b");
- 		printf("output: %s total %.2f%%", buffer2, (float)i / noutput * 100);
+ 		printf("output: %s total %.2f%%", buffer2, (i+1.0) / noutput * 100);
 		fflush(stdout);
 	}
 
@@ -139,7 +140,6 @@ bool approximate(std::vector<std::vector<boost::shared_ptr<Pixel> > > & pixels,
 
 	int width = pixels[0].size();
 
-	//treat a grayscale pixel as a 4 bytes long integer
 	//select base
 	base = pixels[row(start_px, width)][col(start_px, width)]->r;
 	for (int i = start_px + 1; i < end_px; i++) {
@@ -195,7 +195,7 @@ double mse ( std::vector<std::vector<boost::shared_ptr<Pixel> > > p1,
 		sum += pow(p1[r][c]->r - p2[r][c]->r, 2);
 	}
 
-	return sum / (end_px - start_px);
+	return (double)sum / (end_px - start_px);
 }
 
 double rms(std::vector<std::vector<boost::shared_ptr<Pixel> > > p1,
