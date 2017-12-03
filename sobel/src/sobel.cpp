@@ -163,8 +163,8 @@ bool approximate(std::vector<std::vector<boost::shared_ptr<Pixel> > > & pixels,
 		lossless_bits++;
 
 	lossy_bits = 0;
-	if (k_bits > lossless_bits)
-		lossy_bits = k_bits - lossless_bits;
+	if ((UNIT_BIT - k_bits) > lossless_bits)
+		lossy_bits = UNIT_BIT - k_bits - lossless_bits;
 	//no loss
 	if (lossy_bits == 0)
 		return false;
